@@ -1,298 +1,343 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#0b131e" />
-  <title>LaFlo-AI Vault | Privater Urheberrechtsnachweis</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            vaultDark: '#0b131e',
-            vaultCard: '#131e2e',
-            vaultGreen: '#00FF66',
-            vaultAccent: '#1B7A36'
-          }
-        }
-      }
-    }
-  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LaFlo-AI Vault | Cloud-Urheberrechtsnachweis</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body { background-color: #eaf1f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --accent: #38bdf8;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --success: #22c55e;
+    }
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      width: 100%;
+      max-width: 800px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    header {
+      text-align: center;
+      padding: 10px 0;
+    }
+    h1 {
+      margin: 0 0 8px 0;
+      font-size: 1.8rem;
+      color: var(--accent);
+    }
+    p.subtitle {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 15px;
+    }
+    @media (min-width: 600px) {
+      .grid-2 { grid-template-columns: 1fr 1fr; }
+    }
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    input, select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 12px;
+      background-color: #0b1120;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      font-size: 0.95rem;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .file-drop {
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      background: #0b1120;
+    }
+    button.btn {
+      background-color: var(--accent);
+      color: #0f172a;
+      border: none;
+      padding: 12px 20px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 100%;
+      font-size: 1rem;
+      transition: opacity 0.2s;
+    }
+    button.btn:hover { opacity: 0.9; }
+    .status {
+      font-size: 0.9rem;
+      text-align: center;
+      margin-top: 10px;
+      color: var(--accent);
+    }
+    .records-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .record-item {
+      background-color: #0b1120;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .record-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .record-title {
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .record-badge {
+      font-size: 0.75rem;
+      background: var(--border);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .record-hash {
+      font-family: monospace;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      word-break: break-all;
+      margin-top: 6px;
+      background: #060a12;
+      padding: 6px;
+      border-radius: 4px;
+    }
+    .badge-cloud {
+      background: #065f46;
+      color: #34d399;
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 6px;
+      display: inline-block;
+      margin-bottom: 12px;
+    }
   </style>
-<link rel="icon" type="image/png" href="icon.png">
-  <link rel="apple-touch-icon" href="icon.png">
-  <link rel="manifest" href="manifest.json">
-  </head>
+</head>
+<body>
 
-<body class="text-slate-800 flex justify-center min-h-screen">
-  <div class="w-full max-w-md bg-[#eef4f9] min-h-screen flex flex-col pb-24 shadow-xl">
-    
-    <!-- Top Navigation Bar -->
-    <header class="px-4 pt-4 pb-2 flex justify-between items-center bg-transparent">
-        <div class="flex items-center gap-3">
-      <img src="icon.png" alt="LFA Logo" class="w-10 h-10 rounded-xl shadow-md object-contain border border-[#00FF66]/30">
-      <div>
-        <p class="text-xs text-slate-500 font-medium">Privater Urheberrechtsnachweis</p>
-        <h1 class="text-base font-bold text-slate-800">LaFlo-AI Vault</h1>
+  <div class="container">
+    <header>
+      <h1>LaFlo-AI Vault</h1>
+      <p class="subtitle">Cloud-Urheberrechtsnachweis & Hash-Tresor</p>
+    </header>
+
+    <!-- Tresor PIN -->
+    <div class="card">
+      <div style="display:flex; justify-content: space-between; align-items: center;">
+        <span class="badge-cloud">● Cloud verbunden (Supabase)</span>
+      </div>
+      <div class="grid grid-2">
+        <div>
+          <label for="vaultPin">Persönliche Tresor-PIN (schützt deine Sichtbarkeit)</label>
+          <input type="password" id="vaultPin" placeholder="z.B. 1234">
+        </div>
+        <div style="display: flex; align-items: flex-end;">
+          <button class="btn" onclick="loadRecords()" style="background: var(--border); color: var(--text);">Tresor synchronisieren</button>
+        </div>
       </div>
     </div>
 
-      <button class="px-3 py-1 bg-white border border-slate-200 rounded-full text-xs font-semibold text-slate-600 shadow-sm">
-        Abmelden
-      </button>
-    </header>
-
-    <!-- Main Content Container -->
-    <main class="px-4 flex-1 space-y-4">
-      
-      <!-- Banner -->
-  <div class="w-full my-3 rounded-2xl overflow-hidden shadow-lg border border-[#00FF66]/30">
-  <img src="banner.png" alt="LaFlo-AI" class="w-full h-auto block object-cover">
-</div>
-
-
-      <!-- Dashboard: Mein Tresor -->
-      <section id="tab-tresor" class="space-y-3">
-        <div class="flex justify-between items-center">
-          <h3 class="text-lg font-bold text-slate-800">Mein Tresor</h3>
-          <button onclick="switchTab('upload')" class="px-3 py-1.5 bg-[#005a70] text-white text-xs font-medium rounded-full shadow-sm flex items-center gap-1">
-            <span>+</span> Neuen Nachweis sichern
-          </button>
-        </div>
-
-        <!-- Stats Grid -->
-        <div class="grid grid-cols-1 gap-2.5">
-          <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-            <p class="text-xs text-slate-500 font-medium">Gesicherte Werke</p>
-            <p id="stats-count" class="text-2xl font-bold text-slate-800 mt-1">0</p>
-            <p class="text-[11px] text-slate-400 mt-0.5">Nur für dein Konto sichtbar</p>
-          </div>
-
-          <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-start">
-            <div>
-              <p class="text-xs text-slate-500 font-medium">Aktiver Schutz</p>
-              <p class="text-lg font-bold text-slate-800 mt-0.5">SHA-256</p>
-              <p class="text-[11px] text-slate-400 mt-0.5">Fingerabdruck beim Upload</p>
-            </div>
-            <img src="icon.png" alt="Schutz" class="w-6 h-6 object-contain">
-
-          </div>
-
-          <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-start">
-            <div>
-              <p class="text-xs text-slate-500 font-medium">Zuletzt gesichert</p>
-              <p id="stats-last-date" class="text-base font-bold text-slate-800 mt-0.5">Noch keine</p>
-              <p class="text-[11px] text-slate-400 mt-0.5">Fester Zeitstempel</p>
-            </div>
-            <span class="text-slate-400 text-lg">⏱️</span>
-          </div>
-        </div>
-
-        <!-- List Header & Filter -->
-        <div class="pt-2">
-          <h4 class="text-sm font-bold text-slate-800 mb-2">Meine Urheberrechtsnachweise</h4>
-          <div class="flex gap-2 overflow-x-auto no-scrollbar text-xs pb-1">
-            <button class="px-3 py-1 bg-slate-200/80 rounded-full font-semibold text-slate-700 whitespace-nowrap">Alle (<span id="filter-all">0</span>)</button>
-            <button class="px-3 py-1 bg-white border border-slate-200 rounded-full text-slate-500 whitespace-nowrap">Texte (0)</button>
-            <button class="px-3 py-1 bg-white border border-slate-200 rounded-full text-slate-500 whitespace-nowrap">Lieder (0)</button>
-            <button class="px-3 py-1 bg-white border border-slate-200 rounded-full text-slate-500 whitespace-nowrap">Videos (0)</button>
-          </div>
-        </div>
-
-        <!-- Records Container -->
-        <div id="records-list" class="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
-          <div class="text-center py-6 text-slate-400">
-            <div class="text-3xl mb-2">🔒</div>
-            <p class="text-xs font-semibold text-slate-700">Noch keine Nachweise hinterlegt</p>
-            <p class="text-[11px] text-slate-400 max-w-[200px] mx-auto mt-1">
-              Sichere dein erstes Werk, damit Zeitstempel & Fingerabdruck festgehalten werden.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <!-- Upload Form Tab -->
-      <section id="tab-upload" class="space-y-4 hidden">
-        <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-          <h3 class="text-base font-bold text-slate-800">Neuen Nachweis sichern</h3>
+    <!-- Neuer Eintrag -->
+    <div class="card">
+      <h2 style="margin-top:0; font-size: 1.2rem;">Neues Werk registrieren</h2>
+      <div class="grid">
+        <div class="grid grid-2">
           <div>
-            <label class="text-xs font-medium text-slate-600 block mb-1">Name / Titel des Werkes</label>
-            <input type="text" id="work-title" placeholder="z. B. Neuer Songtext 'Sommerregen'" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500" />
+            <label for="docTitle">Titel / Name des Werks</label>
+            <input type="text" id="docTitle" placeholder="z.B. Logo Entwurf v1">
           </div>
           <div>
-            <label class="text-xs font-medium text-slate-600 block mb-1">Kategorie</label>
-            <select id="work-category" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 bg-white">
-              <option value="Text">Songtext / Text</option>
-              <option value="Lied">Audio / Musikdatei</option>
-              <option value="Grafik">Grafik / Bild / Artwork</option>
-              <option value="Dokument">Dokument / Konzept</option>
+            <label for="docCategory">Kategorie</label>
+            <select id="docCategory">
+              <option value="Grafik / Design">Grafik / Design</option>
+              <option value="Audio / Musik">Audio / Musik</option>
+              <option value="Text / Konzept">Text / Konzept</option>
+              <option value="Software / Code">Software / Code</option>
+              <option value="Sonstiges">Sonstiges</option>
             </select>
           </div>
-          <div>
-            <label class="text-xs font-medium text-slate-600 block mb-1">Datei auswählen (Berechnung erfolgt lokal)</label>
-            <input type="file" id="work-file" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200" />
-          </div>
-          <div id="hash-preview" class="hidden p-3 bg-slate-50 rounded-xl border border-slate-200">
-            <p class="text-[10px] font-mono text-slate-500 break-all"><strong>SHA-256 Hash:</strong> <span id="hash-value"></span></p>
-          </div>
-          <button onclick="saveRecord()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm">
-            Urheberrecht jetzt sichern
-          </button>
         </div>
-      </section>
 
-      <!-- Dossier Export Tab -->
-      <section id="tab-audit" class="space-y-4 hidden">
-        <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-          <h3 class="text-base font-bold text-slate-800 mb-1">Tresor-Dossier exportieren</h3>
-          <p class="text-xs text-slate-500 mb-4">
-            Lade deine vollständige Nachweisliste inklusive Zeitstempel und kryptografischen SHA-256 Hashwerten als gesicherte JSON-Datei herunter.
-          </p>
-          <button onclick="exportDossier()" class="w-full py-2.5 bg-[#005a70] text-white rounded-xl text-xs font-bold shadow-sm">
-            Dossier exportieren (.json)
-          </button>
+        <div>
+          <label>Datei auswählen (Wird nur lokal gehasht, Datei bleibt privat)</label>
+          <div class="file-drop" onclick="document.getElementById('fileInput').click()">
+            <span id="fileLabel">Hier tippen zum Auswählen einer Datei</span>
+            <input type="file" id="fileInput" style="display: none;" onchange="handleFile(this)">
+          </div>
         </div>
-      </section>
 
-    </main>
+        <button class="btn" onclick="registerRecord()">Werk in Cloud sichern</button>
+        <div id="statusMsg" class="status"></div>
+      </div>
+    </div>
 
-    <!-- Bottom Navigation Bar -->
-    <nav class="fixed bottom-0 w-full max-w-md bg-white border-t border-slate-100 flex justify-around py-2.5 text-[10px] font-semibold text-slate-400 z-50">
-      <button onclick="switchTab('tresor')" id="nav-tresor" class="flex flex-col items-center text-emerald-600">
-        <span class="text-base">🔒</span>
-        <span>Mein Tresor</span>
-      </button>
-      <button onclick="switchTab('upload')" id="nav-upload" class="flex flex-col items-center">
-        <span class="text-base">➕</span>
-        <span>Nachweis sichern</span>
-      </button>
-      <button onclick="switchTab('audit')" id="nav-audit" class="flex flex-col items-center">
-        <img src="icon.png" alt="Sicherung" class="w-5 h-5 mx-auto object-contain">
-
-        <span>Sicherung</span>
-      </button>
-    </nav>
+    <!-- Vorhandene Nachweise -->
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="margin: 0; font-size: 1.2rem;">Gesicherte Werke (Cloud)</h2>
+        <span id="recordCount" style="font-size: 0.85rem; color: var(--text-muted);">0 Einträge</span>
+      </div>
+      <div id="recordsList" class="records-list">
+        <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center;">Gib deine PIN ein und tippe auf "Tresor synchronisieren".</p>
+      </div>
+    </div>
   </div>
 
-  <!-- Logic & Cryptography -->
   <script>
-    let records = JSON.parse(localStorage.getItem('laflo_vault_records') || '[]');
+    // Supabase Credentials
+    const SUPABASE_URL = 'https://lypdflgzdarglofrtjff.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_NpvnKIr1uzFn7qUrMZZzew_GSrAFHrE';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    async function generateSHA256(file) {
+    let selectedFileHash = null;
+    let selectedFileName = null;
+
+    async function handleFile(input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      selectedFileName = file.name;
+      document.getElementById('fileLabel').innerText = 'Berechne Hash für: ' + file.name + '...';
+
       const arrayBuffer = await file.arrayBuffer();
       const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-      return hashHex;
+      selectedFileHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+      document.getElementById('fileLabel').innerText = 'Ausgewählt: ' + file.name;
     }
 
-    document.getElementById('work-file').addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const hash = await generateSHA256(file);
-        document.getElementById('hash-preview').classList.remove('hidden');
-        document.getElementById('hash-value').innerText = hash;
-      }
-    });
+    async function registerRecord() {
+      const pin = document.getElementById('vaultPin').value.trim();
+      const title = document.getElementById('docTitle').value.trim();
+      const category = document.getElementById('docCategory').value;
+      const status = document.getElementById('statusMsg');
 
-    async function saveRecord() {
-      const title = document.getElementById('work-title').value.trim();
-      const category = document.getElementById('work-category').value;
-      const fileInput = document.getElementById('work-file');
-      
-      if (!title || !fileInput.files[0]) {
-        alert('Bitte gib einen Titel ein und wähle eine Datei aus.');
+      if (!pin) {
+        status.innerText = 'Bitte zuerst eine Tresor-PIN oben eingeben!';
+        return;
+      }
+      if (!title || !selectedFileHash) {
+        status.innerText = 'Bitte Titel angeben und Datei auswählen!';
         return;
       }
 
-      const file = fileInput.files[0];
-      const hash = await generateSHA256(file);
-      const timestamp = new Date().toISOString();
+      status.innerText = 'Speichere in Supabase...';
 
       const newRecord = {
-        id: 'LFA-' + Date.now(),
+        id: crypto.randomUUID(),
+        user_pin: pin,
         title: title,
         category: category,
-        fileName: file.name,
-        sha256: hash,
-        created: timestamp
+        file_name: selectedFileName,
+        sha256: selectedFileHash,
+        created: new Date().toLocaleString('de-DE')
       };
 
-      records.unshift(newRecord);
-      localStorage.setItem('laflo_vault_records', JSON.stringify(records));
-      
-      document.getElementById('work-title').value = '';
-      fileInput.value = '';
-      document.getElementById('hash-preview').classList.add('hidden');
-      
-      renderUI();
-      switchTab('tresor');
-    }
+      const { error } = await supabase.from('records').insert([newRecord]);
 
-    function renderUI() {
-      const countEl = document.getElementById('stats-count');
-      const filterAllEl = document.getElementById('filter-all');
-      const lastDateEl = document.getElementById('stats-last-date');
-      const recordsListEl = document.getElementById('records-list');
-
-      countEl.innerText = records.length;
-      filterAllEl.innerText = records.length;
-
-      if (records.length > 0) {
-        const d = new Date(records[0].created);
-        lastDateEl.innerText = d.toLocaleDateString('de-DE') + ' ' + d.toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit'});
-        
-        let html = '<div class="space-y-3">';
-        records.forEach(rec => {
-          const recDate = new Date(rec.created).toLocaleDateString('de-DE');
-          html += `
-            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
-              <div class="flex justify-between items-center mb-1">
-                <span class="font-bold text-slate-800">${rec.title}</span>
-                <span class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-semibold">${rec.category}</span>
-              </div>
-              <p class="text-[10px] text-slate-400 mb-1">Gesichert am: ${recDate}</p>
-              <p class="text-[9px] font-mono text-slate-600 bg-white p-1 rounded border border-slate-100 break-all">
-                SHA-256: ${rec.sha256}
-              </p>
-            </div>
-          `;
-        });
-        html += '</div>';
-        recordsListEl.innerHTML = html;
+      if (error) {
+        status.innerText = 'Fehler beim Speichern: ' + error.message;
+      } else {
+        status.innerText = 'Erfolgreich in der Cloud gesichert!';
+        document.getElementById('docTitle').value = '';
+        document.getElementById('fileInput').value = '';
+        document.getElementById('fileLabel').innerText = 'Hier tippen zum Auswählen einer Datei';
+        selectedFileHash = null;
+        selectedFileName = null;
+        loadRecords();
       }
     }
 
-    function switchTab(tabId) {
-      document.getElementById('tab-tresor').classList.add('hidden');
-      document.getElementById('tab-upload').classList.add('hidden');
-      document.getElementById('tab-audit').classList.add('hidden');
+    async function loadRecords() {
+      const pin = document.getElementById('vaultPin').value.trim();
+      const list = document.getElementById('recordsList');
+      const count = document.getElementById('recordCount');
 
-      document.getElementById('nav-tresor').className = 'flex flex-col items-center text-slate-400';
-      document.getElementById('nav-upload').className = 'flex flex-col items-center text-slate-400';
-      document.getElementById('nav-audit').className = 'flex flex-col items-center text-slate-400';
+      if (!pin) {
+        list.innerHTML = '<p style="color: #ef4444; font-size: 0.9rem; text-align: center;">Bitte gib deine PIN ein, um deine Daten zu laden.</p>';
+        return;
+      }
 
-      document.getElementById('tab-' + tabId).classList.remove('hidden');
-      document.getElementById('nav-' + tabId).className = 'flex flex-col items-center text-emerald-600';
+      list.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem; text-align: center;">Lade Daten aus der Cloud...</p>';
+
+      const { data, error } = await supabase
+        .from('records')
+        .select('*')
+        .eq('user_pin', pin)
+        .order('created', { ascending: false });
+
+      if (error) {
+        list.innerHTML = '<p style="color: #ef4444; font-size: 0.9rem; text-align: center;">Fehler beim Laden: ' + error.message + '</p>';
+        return;
+      }
+
+      count.innerText = (data ? data.length : 0) + ' Einträge';
+
+      if (!data || data.length === 0) {
+        list.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem; text-align: center;">Keine Einträge für diese PIN gefunden.</p>';
+        return;
+      }
+
+      list.innerHTML = data.map(item => `
+        <div class="record-item">
+          <div class="record-header">
+            <span class="record-title">${escapeHtml(item.title)}</span>
+            <span class="record-badge">${escapeHtml(item.category)}</span>
+          </div>
+          <div style="font-size: 0.8rem; color: var(--text-muted);">
+            Datei: ${escapeHtml(item.file_name)} | Gesichert am: ${item.created}
+          </div>
+          <div class="record-hash">SHA-256: ${item.sha256}</div>
+        </div>
+      `).join('');
     }
 
-    function exportDossier() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(records, null, 2));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", "LaFlo_AI_Vault_Dossier_" + Date.now() + ".json");
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
+    function escapeHtml(string) {
+      return String(string).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
-
-    renderUI();
   </script>
 </body>
 </html>

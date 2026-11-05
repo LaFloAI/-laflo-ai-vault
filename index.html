@@ -77,12 +77,26 @@
         .btn-bio:hover {
             background-color: #9f00d4;
         }
+        .folder-group {
+            margin-top: 20px;
+            background: #222;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .folder-title {
+            color: #00FFFF;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+        }
         .entry-card {
-            margin-top: 15px;
+            margin-top: 10px;
             background: #2a2a2a;
             padding: 12px;
             border-radius: 5px;
-            border-left: 4px solid #00FFFF;
+            border-left: 4px solid #BD00FF;
         }
         .entry-meta {
             font-size: 0.8rem;
@@ -141,7 +155,7 @@
         
         <button onclick="generateVaultEntry()">Hash & Zeitstempel im Ordner speichern</button>
         
-        <h3 style="margin-top: 30px; font-size: 1.1rem; color: #00FFFF;">Dein Vault-Verlauf</h3>
+        <h3 style="margin-top: 30px; font-size: 1.1rem; color: #00FFFF;">Dein Vault-Verlauf (nach Ordnern sortiert)</h3>
         <div id="vaultHistory">
             <p style="font-size: 0.85rem; color: #777;">Noch keine Einträge gespeichert.</p>
         </div>
@@ -153,14 +167,12 @@ let vaultEntries = [];
 let folders = ["Songtexte", "Gedichte", "Ideen", "LaFlo-AI Vault"];
 
 window.onload = function() {
-    // Ordner laden
     const savedFolders = localStorage.getItem('laflo_vault_folders');
     if (savedFolders) {
         folders = JSON.parse(savedFolders);
     }
     updateFolderDropdown();
 
-    // Einträge laden
     const saved = localStorage.getItem('laflo_vault_entries');
     if (saved) {
         vaultEntries = JSON.parse(saved);
@@ -246,9 +258,9 @@ function deleteCurrentFolder() {
 }
 
 async function generateVaultEntry() {
-    const title = document.getElementById('entryTitle').value.trim() || "Unbenanntes Werk";
-    const text = document.getElementById('userInput').value;
-    const folder = document.getElementById('folderSelect').value;
+    const title = document.getElementById('entryTitle'].value.trim() || "Unbenanntes Werk";
+    const text = document.getElementById('userInput'].value;
+    const folder = document.getElementById('folderSelect'].value;
 
     if (!text.trim()) {
         alert('Bitte gib einen Text ein!');
@@ -275,8 +287,8 @@ async function generateVaultEntry() {
     
     renderHistory();
 
-    document.getElementById('entryTitle').value = '';
-    document.getElementById('userInput').value = '';
+    document.getElementById('entryTitle'].value = '';
+    document.getElementById('userInput'].value = '';
     alert('Erfolgreich im Ordner "' + folder + '" gesichert!');
 }
 
@@ -287,18 +299,34 @@ function renderHistory() {
         return;
     }
 
-    let html = '';
-    vaultEntries.forEach((entry) => {
-        html += `
-            <div class="entry-card">
-                <div class="entry-meta">📁 <strong>${escapeHtml(entry.folder)}</strong> | 📌 <strong>${escapeHtml(entry.title)}</strong><br>⏱️ ${entry.timestamp}</div>
-                <div class="entry-hash">SHA-256: ${entry.hash}</div>
-                <div class="entry-text"><strong>Originaltext:</strong><br>${escapeHtml(entry.text)}</div>
-                <button class="btn-copy" onclick="copyToClipboard('${entry.hash}')">Hash kopieren</button>
-                <button class="btn-text-copy" onclick="copyToClipboard(${JSON.stringify(entry.text)})">Originaltext kopieren</button>
-            </div>
-        `;
+    // Gruppiere Einträge nach Ordnern
+    let grouped = {};
+    vaultEntries.forEach(entry => {
+        if (!grouped[entry.folder]) {
+            grouped[entry.folder] = [];
+        }
+        grouped[entry.folder].push(entry);
     });
+
+    let html = '';
+    for (const [folderName, entries] of Object.entries(grouped)) {
+        html += `
+            <div class="folder-group">
+                <div class="folder-title">📁 ${escapeHtml(folderName)} (${entries.length})</div>
+        `;
+        entries.forEach(entry => {
+            html += `
+                <div class="entry-card">
+                    <div class="entry-meta">📌 <strong>${escapeHtml(entry.title)}</strong><br>⏱️ ${entry.timestamp}</div>
+                    <div class="entry-hash">SHA-256: ${entry.hash}</div>
+                    <div class="entry-text"><strong>Originaltext:</strong><br>${escapeHtml(entry.text)}</div>
+                    <button class="btn-copy" onclick="copyToClipboard('${entry.hash}')">Hash kopieren</button>
+                    <button class="btn-text-copy" onclick="copyToClipboard(${JSON.stringify(entry.text)})">Originaltext kopieren</button>
+                </div>
+            `;
+        });
+        html += `</div>`;
+    }
     historyDiv.innerHTML = html;
 }
 

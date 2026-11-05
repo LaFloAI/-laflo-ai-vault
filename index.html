@@ -7,6 +7,7 @@
     <!-- PWA / App-Ansicht Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="manifest.json">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -73,7 +74,6 @@
         .btn-text-copy:hover {
             background-color: #d400d4;
         }
-        /* Dezent kleiner und sicherer Lösch-Button */
         .btn-delete {
             background-color: #331111;
             color: #ff4444;
@@ -196,7 +196,7 @@
     <!-- 3. Eigentliche App -->
     <div id="vaultApp" class="screen">
         <h1>LaFlo-AI Vault</h1>
-        <p style="font-size: 0.9rem; color: #aaa;">Sichere deine Ideen, Texte und Songs mit lokalem Hash & Ordner-Struktur.</p>
+        <p style="font-size: 0.9rem; color: #aaa;">Sichere deine Ideen, Texte, Songs und Codes mit lokalem Hash & Ordner-Struktur.</p>
         
         <!-- Ordnerverwaltung -->
         <label style="font-size: 0.85rem; color: #aaa;">Ordner / Kategorie auswählen oder verwalten:</label>
@@ -206,8 +206,8 @@
             <button onclick="deleteCurrentFolder()" style="width: auto; padding: 0 10px; background: #FF4444; color: #fff; font-size: 0.85rem;">Löschen</button>
         </div>
 
-        <input type="text" id="entryTitle" placeholder="Titel des Werks (z. B. Song X - V1)">
-        <textarea id="userInput" placeholder="Gib hier deinen Text, Songtext oder deine Idee ein..."></textarea>
+        <input type="text" id="entryTitle" placeholder="Titel des Werks (z. B. Song X oder Code-Snipped)">
+        <textarea id="userInput" placeholder="Gib hier deinen Text, Songtext, Code oder deine Idee ein..."></textarea>
         
         <button onclick="generateVaultEntry()">Hash & Zeitstempel im Ordner speichern</button>
         
@@ -231,7 +231,7 @@
 
 <script>
 let vaultEntries = [];
-let folders = ["Songtexte", "Gedichte", "Ideen", "LaFlo-AI Vault"];
+let folders = ["Songtexte", "Gedichte", "Ideen", "Codes", "LaFlo-AI Vault"];
 
 window.onload = function() {
     const savedPin = localStorage.getItem('laflo_vault_pin');
@@ -330,7 +330,7 @@ async function generateVaultEntry() {
     const folder = document.getElementById('folderSelect').value;
 
     if (!text.trim()) {
-        alert('Bitte gib einen Text ein!');
+        alert('Bitte gib einen Text oder Code ein!');
         return;
     }
 
@@ -393,7 +393,7 @@ function renderHistory() {
                         <button class="btn-delete" onclick="deleteEntry(${entry.id})">Löschen</button>
                     </div>
                     <div class="entry-hash">SHA-256: ${entry.hash}</div>
-                    <div class="entry-text"><strong>Originaltext:</strong><br>${escapeHtml(entry.text)}</div>
+                    <div class="entry-text"><strong>Originaltext / Code:</strong><br>${escapeHtml(entry.text)}</div>
                     <button class="btn-copy" onclick="copyToClipboard('${entry.hash}')">Hash kopieren</button>
                     <button class="btn-text-copy" onclick="copyToClipboard(decodeURIComponent('${encodeURIComponent(entry.text)}'))">Originaltext kopieren</button>
                 </div>

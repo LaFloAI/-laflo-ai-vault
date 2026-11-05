@@ -117,7 +117,6 @@ let lastGeneratedHash = "";
 async function authenticate() {
     try {
         if (!window.PublicKeyCredential) {
-            alert('Dein Browser unterstützt keine biometrische Authentifizierung. Entsperre manuell.');
             unlockVault();
             return;
         }
@@ -139,7 +138,6 @@ async function authenticate() {
         await navigator.credentials.create({ publicKey });
         unlockVault();
     } catch (error) {
-        console.log("Biometrie-Hinweis:", error);
         unlockVault();
     }
 }

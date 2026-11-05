@@ -135,6 +135,7 @@
         <h1>LaFlo-AI Vault gesperrt</h1>
         <p style="color: #aaa; font-size: 0.9rem;">Bitte entsperre den Tresor mit deinem Fingerabdruck oder Gesicht.</p>
         <button class="btn-bio" onclick="authenticate()">Fingerabdruck / Gesicht scannen</button>
+        <button onclick="unlockVault()" style="background: #333; color: #aaa; margin-top: 10px; font-size: 0.85rem; padding: 8px;">[Notfall: Direkt entsperren]</button>
     </div>
 
     <!-- Eigentliche App -->
@@ -204,7 +205,9 @@ async function authenticate() {
         await navigator.credentials.create({ publicKey });
         unlockVault();
     } catch (error) {
-        unlockVault();
+        console.log("Biometrie-Info:", error);
+        // Wenn das Handy den Scan abricht oder blockiert, geben wir einen Hinweis
+        alert("Biometrie konnte nicht direkt gestartet werden. Nutze den Notfall-Button darunter, falls es klemmt.");
     }
 }
 
@@ -258,9 +261,9 @@ function deleteCurrentFolder() {
 }
 
 async function generateVaultEntry() {
-    const title = document.getElementById('entryTitle'].value.trim() || "Unbenanntes Werk";
-    const text = document.getElementById('userInput'].value;
-    const folder = document.getElementById('folderSelect'].value;
+    const title = document.getElementById('entryTitle').value.trim() || "Unbenanntes Werk";
+    const text = document.getElementById('userInput').value;
+    const folder = document.getElementById('folderSelect').value;
 
     if (!text.trim()) {
         alert('Bitte gib einen Text ein!');
@@ -287,8 +290,8 @@ async function generateVaultEntry() {
     
     renderHistory();
 
-    document.getElementById('entryTitle'].value = '';
-    document.getElementById('userInput'].value = '';
+    document.getElementById('entryTitle').value = '';
+    document.getElementById('userInput').value = '';
     alert('Erfolgreich im Ordner "' + folder + '" gesichert!');
 }
 
@@ -299,7 +302,6 @@ function renderHistory() {
         return;
     }
 
-    // Gruppiere Einträge nach Ordnern
     let grouped = {};
     vaultEntries.forEach(entry => {
         if (!grouped[entry.folder]) {
@@ -321,7 +323,7 @@ function renderHistory() {
                     <div class="entry-hash">SHA-256: ${entry.hash}</div>
                     <div class="entry-text"><strong>Originaltext:</strong><br>${escapeHtml(entry.text)}</div>
                     <button class="btn-copy" onclick="copyToClipboard('${entry.hash}')">Hash kopieren</button>
-                    <button class="btn-text-copy" onclick="copyToClipboard(${JSON.stringify(entry.text)})">Originaltext kopieren</button>
+                    <button class="btn-text-copy" onclick="copyToClipboard(decodeURIComponent('${encodeURIComponent(entry.text)}'))">Originaltext kopieren</button>
                 </div>
             `;
         });

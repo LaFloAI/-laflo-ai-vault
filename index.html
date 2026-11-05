@@ -25,15 +25,18 @@
             font-size: 1.5rem;
             text-align: center;
         }
-        textarea {
+        input, select, textarea {
             width: 100%;
-            height: 120px;
             background: #2a2a2a;
             color: #fff;
             border: 1px solid #444;
             border-radius: 5px;
             padding: 10px;
             margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 120px;
             resize: vertical;
         }
         button {
@@ -53,6 +56,7 @@
         }
         .btn-copy {
             background-color: #00FFFF;
+            margin-top: 5px;
         }
         .btn-copy:hover {
             background-color: #00cccc;
@@ -64,14 +68,32 @@
         .btn-bio:hover {
             background-color: #9f00d4;
         }
-        .result {
-            margin-top: 20px;
+        .entry-card {
+            margin-top: 15px;
             background: #2a2a2a;
-            padding: 10px;
+            padding: 12px;
             border-radius: 5px;
-            word-break: break-all;
+            border-left: 4px solid #00FFFF;
+        }
+        .entry-meta {
+            font-size: 0.8rem;
+            color: #aaa;
+            margin-bottom: 5px;
+        }
+        .entry-hash {
             font-family: monospace;
+            font-size: 0.85rem;
+            word-break: break-all;
+            color: #00FFFF;
+        }
+        .entry-text {
             font-size: 0.9rem;
+            margin-top: 8px;
+            white-space: pre-wrap;
+            color: #ddd;
+            background: #1e1e1e;
+            padding: 8px;
+            border-radius: 3px;
         }
         #authScreen {
             text-align: center;
@@ -95,24 +117,42 @@
     <!-- Eigentliche App -->
     <div id="vaultApp">
         <h1>LaFlo-AI Vault</h1>
-        <p style="font-size: 0.9rem; color: #aaa;">Sichere deine Ideen, Texte und Songs mit lokalem Hash & Zeitstempel.</p>
+        <p style="font-size: 0.9rem; color: #aaa;">Sichere deine Ideen, Texte und Songs mit lokalem Hash & Ordner-Struktur.</p>
         
+        <!-- Ordnerverwaltung -->
+        <label style="font-size: 0.85rem; color: #aaa;">Ordner / Kategorie auswählen oder erstellen:</label>
+        <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+            <select id="folderSelect" style="margin-bottom: 0;">
+                <option value="Songtexte">Songtexte</option>
+                <option value="Gedichte">Gedichte</option>
+                <option value="Ideen">Ideen</option>
+            </select>
+            <button onclick="addNewFolder()" style="width: auto; padding: 0 15px; background: #BD00FF; color: #fff;">+ Ordner</button>
+        </div>
+
+        <input type="text" id="entryTitle" placeholder="Titel des Werks (z. B. Song X - V1)">
         <textarea id="userInput" placeholder="Gib hier deinen Text, Songtext oder deine Idee ein..."></textarea>
         
-        <button onclick="generateVaultEntry()">Hash & Zeitstempel generieren</button>
+        <button onclick="generateVaultEntry()">Hash & Zeitstempel im Ordner speichern</button>
         
-        <div class="result" id="output" style="display:none;">
-            <strong>Zeitstempel:</strong> <span id="timeOut"></span><br><br>
-            <strong>SHA-256 Hash:</strong><br>
-            <span id="hashOut" style="color: #00FFFF;"></span>
-            
-            <button class="btn-copy" onclick="copyHash()">Hash in Zwischenablage kopieren</button>
+        <h3 style="margin-top: 30px; font-size: 1.1rem; color: #00FFFF;">Dein Vault-Verlauf</h3>
+        <div id="vaultHistory">
+            <p style="font-size: 0.85rem; color: #777;">Noch keine Einträge gespeichert.</p>
         </div>
     </div>
 </div>
 
 <script>
-let lastGeneratedHash = "";
+let vaultEntries = [];
+
+// Einträge beim Laden aus dem lokalen Speicher des Handys laden
+window.onload = function() {
+    const saved = localStorage.getItem('laflo_vault_entries');
+    if (saved) {
+        vaultEntries = JSON.parse(saved);
+        renderHistory();
+    }
+};
 
 async function authenticate() {
     try {
@@ -147,8 +187,23 @@ function unlockVault() {
     document.getElementById('vaultApp').style.display = 'block';
 }
 
+function addNewFolder() {
+    const folderName = prompt("Gib den Namen für den neuen Ordner ein:");
+    if (folderName && folderName.trim()) {
+        const select = document.getElementById('folderSelect');
+        const option = document.createElement('option');
+        option.value = folderName.trim();
+        option.textContent = folderName.trim();
+        select.appendChild(option);
+        select.value = folderName.trim();
+    }
+}
+
 async function generateVaultEntry() {
+    const title = document.getElementById('entryTitle').value.trim() || "Unbenanntes Werk";
     const text = document.getElementById('userInput').value;
+    const folder = document.getElementById('folderSelect').value;
+
     if (!text.trim()) {
         alert('Bitte gib einen Text ein!');
         return;
@@ -161,20 +216,54 @@ async function generateVaultEntry() {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-    lastGeneratedHash = hashHex;
+    const newEntry = {
+        title: title,
+        folder: folder,
+        text: text,
+        timestamp: now,
+        hash: hashHex
+    };
 
-    document.getElementById('timeOut').innerText = now;
-    document.getElementById('hashOut').innerText = hashHex;
-    document.getElementById('output').style.display = 'block';
+    vaultEntries.unshift(newEntry);
+    localStorage.setItem('laflo_vault_entries', JSON.stringify(vaultEntries));
+    
+    renderHistory();
+
+    // Eingabefelder leeren
+    document.getElementById('entryTitle').value = '';
+    document.getElementById('userInput').value = '';
+    alert('Erfolgreich im Ordner "' + folder + '" gesichert!');
 }
 
-function copyHash() {
-    if (!lastGeneratedHash) return;
-    navigator.clipboard.writeText(lastGeneratedHash).then(() => {
-        alert('Hash erfolgreich kopiert!');
-    }).catch(err => {
-        alert('Fehler beim Kopieren: ' + err);
+function renderHistory() {
+    const historyDiv = document.getElementById('vaultHistory');
+    if (vaultEntries.length === 0) {
+        historyDiv.innerHTML = '<p style="font-size: 0.85rem; color: #777;">Noch keine Einträge gespeichert.</p>';
+        return;
+    }
+
+    let html = '';
+    vaultEntries.forEach((entry, index) => {
+        html += `
+            <div class="entry-card">
+                <div class="entry-meta">📁 <strong>${entry.folder}</strong> | 📌 <strong>${entry.title}</strong><br>⏱️ ${entry.timestamp}</div>
+                <div class="entry-hash">SHA-256: ${entry.hash}</div>
+                <div class="entry-text"><strong>Originaltext:</strong><br>${escapeHtml(entry.text)}</div>
+                <button class="btn-copy" onclick="copySpecificHash('${entry.hash}')">Hash kopieren</button>
+            </div>
+        `;
     });
+    historyDiv.innerHTML = html;
+}
+
+function copySpecificHash(hash) {
+    navigator.clipboard.writeText(hash).then(() => {
+        alert('Hash erfolgreich kopiert!');
+    });
+}
+
+function escapeHtml(text) {
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 </script>
 

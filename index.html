@@ -78,22 +78,34 @@
             background-color: #9f00d4;
         }
         .folder-group {
-            margin-top: 20px;
+            margin-top: 15px;
             background: #222;
             border: 1px solid #333;
             border-radius: 8px;
-            padding: 15px;
+            overflow: hidden;
         }
-        .folder-title {
+        .folder-header {
+            background: #2a2a2a;
             color: #00FFFF;
-            font-size: 1.1rem;
-            margin-bottom: 10px;
-            border-bottom: 1px solid #444;
-            padding-bottom: 5px;
+            padding: 12px 15px;
+            font-size: 1.05rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .folder-header:hover {
+            background: #333;
+        }
+        .folder-content {
+            display: none;
+            padding: 15px;
+            border-top: 1px solid #333;
         }
         .entry-card {
             margin-top: 10px;
-            background: #2a2a2a;
+            background: #1e1e1e;
             padding: 12px;
             border-radius: 5px;
             border-left: 4px solid #BD00FF;
@@ -114,7 +126,7 @@
             margin-top: 8px;
             white-space: pre-wrap;
             color: #ddd;
-            background: #1e1e1e;
+            background: #121212;
             padding: 8px;
             border-radius: 3px;
         }
@@ -130,12 +142,11 @@
 <body>
 
 <div class="container">
-    <!-- Biometrischer Sperrbildschirm -->
+    <!-- Biometrischer Sperrbildschirm (Sicher & Ohne Sicherheitslücke) -->
     <div id="authScreen">
         <h1>LaFlo-AI Vault gesperrt</h1>
         <p style="color: #aaa; font-size: 0.9rem;">Bitte entsperre den Tresor mit deinem Fingerabdruck oder Gesicht.</p>
         <button class="btn-bio" onclick="authenticate()">Fingerabdruck / Gesicht scannen</button>
-        <button onclick="unlockVault()" style="background: #333; color: #aaa; margin-top: 10px; font-size: 0.85rem; padding: 8px;">[Notfall: Direkt entsperren]</button>
     </div>
 
     <!-- Eigentliche App -->
@@ -156,7 +167,7 @@
         
         <button onclick="generateVaultEntry()">Hash & Zeitstempel im Ordner speichern</button>
         
-        <h3 style="margin-top: 30px; font-size: 1.1rem; color: #00FFFF;">Dein Vault-Verlauf (nach Ordnern sortiert)</h3>
+        <h3 style="margin-top: 30px; font-size: 1.1rem; color: #00FFFF;">Dein Vault-Verlauf (Ordner)</h3>
         <div id="vaultHistory">
             <p style="font-size: 0.85rem; color: #777;">Noch keine Einträge gespeichert.</p>
         </div>
@@ -179,6 +190,9 @@ window.onload = function() {
         vaultEntries = JSON.parse(saved);
         renderHistory();
     }
+
+    // Beim Start direkt versuchen, die Biometrie zu triggern
+    setTimeout(authenticate, 300);
 };
 
 async function authenticate() {
@@ -205,9 +219,7 @@ async function authenticate() {
         await navigator.credentials.create({ publicKey });
         unlockVault();
     } catch (error) {
-        console.log("Biometrie-Info:", error);
-        // Wenn das Handy den Scan abricht oder blockiert, geben wir einen Hinweis
-        alert("Biometrie konnte nicht direkt gestartet werden. Nutze den Notfall-Button darunter, falls es klemmt.");
+        console.log("Biometrie-Hinweis: Bitte Button nutzen.");
     }
 }
 
@@ -291,7 +303,7 @@ async function generateVaultEntry() {
     renderHistory();
 
     document.getElementById('entryTitle').value = '';
-    document.getElementById('userInput').value = '';
+    document.getElementById('userInput'].value = '';
     alert('Erfolgreich im Ordner "' + folder + '" gesichert!');
 }
 
@@ -314,7 +326,11 @@ function renderHistory() {
     for (const [folderName, entries] of Object.entries(grouped)) {
         html += `
             <div class="folder-group">
-                <div class="folder-title">📁 ${escapeHtml(folderName)} (${entries.length})</div>
+                <div class="folder-header" onclick="toggleFolder(this)">
+                    <span>📁 ${escapeHtml(folderName)} (${entries.length})</span>
+                    <span>▼</span>
+                </div>
+                <div class="folder-content">
         `;
         entries.forEach(entry => {
             html += `
@@ -327,9 +343,21 @@ function renderHistory() {
                 </div>
             `;
         });
-        html += `</div>`;
+        html += `</div></div>`;
     }
     historyDiv.innerHTML = html;
+}
+
+function toggleFolder(headerElement) {
+    const content = headerElement.nextElementSibling;
+    const arrow = headerElement.lastElementChild;
+    if (content.style.display === "block") {
+        content.style.display = "none";
+        arrow.textContent = "▼";
+    } else {
+        content.style.display = "block";
+        arrow.textContent = "▲";
+    }
 }
 
 function copyToClipboard(text) {

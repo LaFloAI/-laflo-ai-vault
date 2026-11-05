@@ -73,15 +73,21 @@
         .btn-text-copy:hover {
             background-color: #d400d4;
         }
+        /* Dezent kleiner und sicherer Lösch-Button */
         .btn-delete {
-            background-color: #FF4444;
-            margin-top: 5px;
-            color: #fff;
-            font-size: 0.85rem;
-            padding: 8px;
+            background-color: #331111;
+            color: #ff4444;
+            border: 1px solid #ff4444;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            border-radius: 4px;
+            cursor: pointer;
+            width: auto;
+            margin: 0;
         }
         .btn-delete:hover {
-            background-color: #cc0000;
+            background-color: #ff4444;
+            color: #fff;
         }
         .btn-pin {
             background-color: #BD00FF;
@@ -129,11 +135,17 @@
             padding: 12px;
             border-radius: 5px;
             border-left: 4px solid #BD00FF;
+            position: relative;
+        }
+        .entry-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 5px;
         }
         .entry-meta {
             font-size: 0.8rem;
             color: #aaa;
-            margin-bottom: 5px;
         }
         .entry-hash {
             font-family: monospace;
@@ -165,7 +177,7 @@
 <body>
 
 <div class="container">
-    <!-- 1. Ersteinrichtungs-Setup (falls noch kein PIN existiert) -->
+    <!-- 1. Ersteinrichtungs-Setup -->
     <div id="setupScreen" class="screen">
         <h1>LaFlo-AI Vault Setup</h1>
         <p style="color: #aaa; font-size: 0.9rem;">Willkommen! Lege deinen persönlichen PIN-Code fest, um deinen Vault abzusichern:</p>
@@ -173,7 +185,7 @@
         <button class="btn-pin" onclick="saveInitialPin()">PIN festlegen & Starten</button>
     </div>
 
-    <!-- 2. PIN-Sperrbildschirm (Standard beim Start) -->
+    <!-- 2. PIN-Sperrbildschirm -->
     <div id="authScreen" class="screen">
         <h1>LaFlo-AI Vault gesperrt</h1>
         <p style="color: #aaa; font-size: 0.9rem;">Gib deinen PIN-Code ein, um den Tresor zu öffnen:</p>
@@ -199,7 +211,7 @@
         
         <button onclick="generateVaultEntry()">Hash & Zeitstempel im Ordner speichern</button>
         
-        <!-- Backup & Wiederherstellung (Profi-Funktion) -->
+        <!-- Backup & Wiederherstellung -->
         <div style="margin-top: 25px; background: #252525; padding: 12px; border-radius: 8px; border: 1px dashed #FFA500;">
             <h4 style="margin: 0 0 8px 0; color: #FFA500; font-size: 0.95rem;">🔒 Datensicherung & Backup</h4>
             <p style="font-size: 0.8rem; color: #aaa; margin-bottom: 10px;">Sichere deine Vault-Daten als Datei (für Google Drive, WhatsApp etc.) oder spiele ein Backup ein.</p>
@@ -225,10 +237,8 @@ window.onload = function() {
     const savedPin = localStorage.getItem('laflo_vault_pin');
     
     if (!savedPin) {
-        // Erster Start: Setup-Screen anzeigen
         document.getElementById('setupScreen').classList.add('active-screen');
     } else {
-        // Regulärer Start: Sperrbildschirm anzeigen
         document.getElementById('authScreen').classList.add('active-screen');
     }
 
@@ -378,12 +388,14 @@ function renderHistory() {
         entries.forEach(entry => {
             html += `
                 <div class="entry-card" id="entry-${entry.id}">
-                    <div class="entry-meta">📌 <strong>${escapeHtml(entry.title)}</strong><br>⏱️ ${entry.timestamp}</div>
+                    <div class="entry-top-row">
+                        <div class="entry-meta">📌 <strong>${escapeHtml(entry.title)}</strong><br>⏱️ ${entry.timestamp}</div>
+                        <button class="btn-delete" onclick="deleteEntry(${entry.id})">Löschen</button>
+                    </div>
                     <div class="entry-hash">SHA-256: ${entry.hash}</div>
                     <div class="entry-text"><strong>Originaltext:</strong><br>${escapeHtml(entry.text)}</div>
                     <button class="btn-copy" onclick="copyToClipboard('${entry.hash}')">Hash kopieren</button>
                     <button class="btn-text-copy" onclick="copyToClipboard(decodeURIComponent('${encodeURIComponent(entry.text)}'))">Originaltext kopieren</button>
-                    <button class="btn-delete" onclick="deleteEntry(${entry.id})">Eintrag löschen</button>
                 </div>
             `;
         });
@@ -412,7 +424,6 @@ function toggleFolder(headerElement) {
     }
 }
 
-// Backup Exportieren (JSON Datei zum Teilen per WhatsApp, Google Drive etc.)
 function exportBackup() {
     const backupData = {
         pin: localStorage.getItem('laflo_vault_pin'),
@@ -428,7 +439,6 @@ function exportBackup() {
     downloadAnchor.remove();
 }
 
-// Backup Importieren (Wiederherstellung auf neuem Handy)
 function importBackup(event) {
     const fileReader = new FileReader();
     if (event.target.files[0]) {

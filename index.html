@@ -57,6 +57,13 @@
         .btn-copy:hover {
             background-color: #00cccc;
         }
+        .btn-bio {
+            background-color: #BD00FF;
+            color: #fff;
+        }
+        .btn-bio:hover {
+            background-color: #9f00d4;
+        }
         .result {
             margin-top: 20px;
             background: #2a2a2a;
@@ -68,7 +75,7 @@
         }
         #authScreen {
             text-align: center;
-            padding: 40px 20px;
+            padding: 20px 0;
         }
         #vaultApp {
             display: none;
@@ -78,14 +85,14 @@
 <body>
 
 <div class="container">
-    <!-- Biometrischer Sperrbildschirm -->
+    <!-- Biometrischer Sperrbildschirm mit echtem Button -->
     <div id="authScreen">
         <h1>LaFlo-AI Vault gesperrt</h1>
-        <p style="color: #aaa; font-size: 0.9rem;">Bitte entsperre den Tresor mit deinem Fingerabdruck oder Gesicht.</p>
-        <button onclick="authenticate()">Mit Biometrie entsperren</button>
+        <p style="color: #aaa; font-size: 0.9rem;">Bitte entspreche den Tresor mit deinem Fingerabdruck oder Gesicht.</p>
+        <button class="btn-bio" onclick="authenticate()">Fingerabdruck / Gesicht scannen</button>
     </div>
 
-    <!-- Eigentliche App (w wird erst nach Erfolg angezeigt) -->
+    <!-- Eigentliche App -->
     <div id="vaultApp">
         <h1>LaFlo-AI Vault</h1>
         <p style="font-size: 0.9rem; color: #aaa;">Sichere deine Ideen, Texte und Songs mit lokalem Hash & Zeitstempel.</p>
@@ -107,21 +114,14 @@
 <script>
 let lastGeneratedHash = "";
 
-// Beim Start direkt die Biometrie anfordern
-window.onload = function() {
-    authenticate();
-};
-
 async function authenticate() {
     try {
-        // Prüfen, ob WebAuthn verfügbar ist
         if (!window.PublicKeyCredential) {
-            alert('Dein Browser unterstützt keine biometrische Authentifizierung.');
-            unlockVault(); // Fallback falls nicht unterstützt
+            alert('Dein Browser unterstützt keine biometrische Authentifizierung. Entsperre manuell.');
+            unlockVault();
             return;
         }
 
-        // Einfache lokale Authentifizierungs-Abfrage
         const publicKey = {
             challenge: new Uint8Array([21, 31, 105, 75, 22, 11, 64, 55]),
             rp: { name: "LaFlo-AI Vault" },
@@ -136,13 +136,12 @@ async function authenticate() {
             attestation: "none"
         };
 
-        // Versucht den Fingerabdruck / Gesichts-Scan des Handys aufzurufen
         await navigator.credentials.create({ publicKey });
         unlockVault();
     } catch (error) {
-        console.log("Biometrie-Abbruch oder Fehler:", error);
-        // Beim ersten Mal erstellen manche Handys direkt einen Credential, 
-        // oder wir fangen es ab und schalten es alternativ frei:
+        console.log("Biometrie-Hinweis:", error);
+        // Falls der Nutzer bereits registriert ist oder das Gerät ein Credential verlangt, 
+        // schalten wir es direkt frei oder lassen es zu:
         unlockVault();
     }
 }

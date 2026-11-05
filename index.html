@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LaFlo-AI Vault</title>
+    <!-- PWA / App-Ansicht Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -70,12 +73,29 @@
         .btn-text-copy:hover {
             background-color: #d400d4;
         }
-        .btn-bio {
+        .btn-delete {
+            background-color: #FF4444;
+            margin-top: 5px;
+            color: #fff;
+            font-size: 0.85rem;
+            padding: 8px;
+        }
+        .btn-delete:hover {
+            background-color: #cc0000;
+        }
+        .btn-pin {
             background-color: #BD00FF;
             color: #fff;
         }
-        .btn-bio:hover {
+        .btn-pin:hover {
             background-color: #9f00d4;
+        }
+        .btn-backup {
+            background-color: #FFA500;
+            color: #000;
+        }
+        .btn-backup:hover {
+            background-color: #cc8400;
         }
         .folder-group {
             margin-top: 15px;
@@ -130,27 +150,39 @@
             padding: 8px;
             border-radius: 3px;
         }
-        #authScreen {
+        .screen {
+            display: none;
+        }
+        .active-screen {
+            display: block;
+        }
+        #authScreen, #setupScreen {
             text-align: center;
             padding: 20px 0;
-        }
-        #vaultApp {
-            display: none;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- Biometrischer Sperrbildschirm -->
-    <div id="authScreen">
-        <h1>LaFlo-AI Vault gesperrt</h1>
-        <p style="color: #aaa; font-size: 0.9rem;">Bitte entsperre den Tresor mit deinem Fingerabdruck oder Gesicht.</p>
-        <button class="btn-bio" onclick="authenticate()">Fingerabdruck / Gesicht scannen</button>
+    <!-- 1. Ersteinrichtungs-Setup (falls noch kein PIN existiert) -->
+    <div id="setupScreen" class="screen">
+        <h1>LaFlo-AI Vault Setup</h1>
+        <p style="color: #aaa; font-size: 0.9rem;">Willkommen! Lege deinen persönlichen PIN-Code fest, um deinen Vault abzusichern:</p>
+        <input type="password" id="newPinInput" placeholder="Dein persönlicher PIN" maxlength="10" style="text-align: center; font-size: 1.2rem; letter-spacing: 3px;">
+        <button class="btn-pin" onclick="saveInitialPin()">PIN festlegen & Starten</button>
     </div>
 
-    <!-- Eigentliche App -->
-    <div id="vaultApp">
+    <!-- 2. PIN-Sperrbildschirm (Standard beim Start) -->
+    <div id="authScreen" class="screen">
+        <h1>LaFlo-AI Vault gesperrt</h1>
+        <p style="color: #aaa; font-size: 0.9rem;">Gib deinen PIN-Code ein, um den Tresor zu öffnen:</p>
+        <input type="password" id="pinInput" placeholder="PIN eingeben" maxlength="10" style="text-align: center; font-size: 1.2rem; letter-spacing: 3px;">
+        <button class="btn-pin" onclick="checkPin()">Tresor entsperren</button>
+    </div>
+
+    <!-- 3. Eigentliche App -->
+    <div id="vaultApp" class="screen">
         <h1>LaFlo-AI Vault</h1>
         <p style="font-size: 0.9rem; color: #aaa;">Sichere deine Ideen, Texte und Songs mit lokalem Hash & Ordner-Struktur.</p>
         
@@ -167,6 +199,17 @@
         
         <button onclick="generateVaultEntry()">Hash & Zeitstempel im Ordner speichern</button>
         
+        <!-- Backup & Wiederherstellung (Profi-Funktion) -->
+        <div style="margin-top: 25px; background: #252525; padding: 12px; border-radius: 8px; border: 1px dashed #FFA500;">
+            <h4 style="margin: 0 0 8px 0; color: #FFA500; font-size: 0.95rem;">🔒 Datensicherung & Backup</h4>
+            <p style="font-size: 0.8rem; color: #aaa; margin-bottom: 10px;">Sichere deine Vault-Daten als Datei (für Google Drive, WhatsApp etc.) oder spiele ein Backup ein.</p>
+            <div style="display: flex; gap: 5px;">
+                <button class="btn-backup" onclick="exportBackup()" style="margin-top:0; font-size: 0.85rem; padding: 8px;">Backup exportieren</button>
+                <button class="btn-backup" onclick="document.getElementById('importFile').click()" style="margin-top:0; font-size: 0.85rem; padding: 8px; background: #ff8c00;">Backup importieren</button>
+                <input type="file" id="importFile" style="display: none;" accept=".json" onchange="importBackup(event)">
+            </div>
+        </div>
+
         <h3 style="margin-top: 30px; font-size: 1.1rem; color: #00FFFF;">Dein Vault-Verlauf (Ordner)</h3>
         <div id="vaultHistory">
             <p style="font-size: 0.85rem; color: #777;">Noch keine Einträge gespeichert.</p>
@@ -179,6 +222,16 @@ let vaultEntries = [];
 let folders = ["Songtexte", "Gedichte", "Ideen", "LaFlo-AI Vault"];
 
 window.onload = function() {
+    const savedPin = localStorage.getItem('laflo_vault_pin');
+    
+    if (!savedPin) {
+        // Erster Start: Setup-Screen anzeigen
+        document.getElementById('setupScreen').classList.add('active-screen');
+    } else {
+        // Regulärer Start: Sperrbildschirm anzeigen
+        document.getElementById('authScreen').classList.add('active-screen');
+    }
+
     const savedFolders = localStorage.getItem('laflo_vault_folders');
     if (savedFolders) {
         folders = JSON.parse(savedFolders);
@@ -192,54 +245,29 @@ window.onload = function() {
     }
 };
 
-async function authenticate() {
-    try {
-        // Prüfen ob WebAuthn im Browser aktiv ist
-        if (!window.PublicKeyCredential) {
-            alert("Dein Browser unterstützt keine Biometrie. Entsperre direkt.");
-            unlockVault();
-            return;
-        }
-
-        // Wir nutzen eine schlanke Authentifizierungs-Anfrage, die den Biometrie-Sensor des Handys direkt aufruft
-        const publicKey = {
-            challenge: new Uint8Array([99, 32, 11, 44, 55, 66, 77, 88]),
-            timeout: 60000,
-            userVerification: "required"
-        };
-
-        // Auf Android / Samsung S20+ triggert das den System-Fingerabdruck/Gesichtsscan
-        await navigator.credentials.get({ publicKey }).catch(async () => {
-            // Falls noch kein Credential registriert war, legen wir kurz eins an, damit der Scanner aufspringt
-            const regOptions = {
-                challenge: new Uint8Array([99, 32, 11, 44, 55, 66, 77, 88]),
-                rp: { name: "LaFlo-AI Vault" },
-                user: {
-                    id: new Uint8Array([1]),
-                    name: "creator@laflo-ai",
-                    displayName: "LaFlo-AI Creator"
-                },
-                pubKeyCredParams: [{ alg: -7, type: "public-key" }],
-                timeout: 60000,
-                authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required" }
-            };
-            await navigator.credentials.create({ publicKey: regOptions });
-        });
-
-        unlockVault();
-    } catch (error) {
-        console.log("Biometrie-Fehler:", error);
-        // Falls der Browser (z.B. wegen GitHub Pages und strengem Cache) den Sensor blockiert, 
-        // geben wir eine Info und lassen den Nutzer per Klick rein, anstatt dass der Button einfriert:
-        if (confirm("Biometrischer Sensor konnte nicht automatisch gestartet werden (Browser-Sicherheit). Möchtest du den Vault jetzt öffnen?")) {
-            unlockVault();
-        }
+function saveInitialPin() {
+    const pin = document.getElementById('newPinInput').value.trim();
+    if (pin.length < 3) {
+        alert("Bitte wähle einen PIN mit mindestens 3 Zeichen!");
+        return;
     }
+    localStorage.setItem('laflo_vault_pin', pin);
+    alert("PIN erfolgreich eingerichtet!");
+    document.getElementById('setupScreen').classList.remove('active-screen');
+    document.getElementById('vaultApp').classList.add('active-screen');
 }
 
-function unlockVault() {
-    document.getElementById('authScreen').style.display = 'none';
-    document.getElementById('vaultApp').style.display = 'block';
+function checkPin() {
+    const enteredPin = document.getElementById('pinInput').value;
+    const savedPin = localStorage.getItem('laflo_vault_pin');
+
+    if (enteredPin === savedPin) {
+        document.getElementById('authScreen').classList.remove('active-screen');
+        document.getElementById('vaultApp').classList.add('active-screen');
+    } else {
+        alert("Falscher PIN!");
+        document.getElementById('pinInput').value = '';
+    }
 }
 
 function updateFolderDropdown(selectedVal = "") {
@@ -304,6 +332,7 @@ async function generateVaultEntry() {
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
     const newEntry = {
+        id: Date.now(),
         title: title,
         folder: folder,
         text: text,
@@ -337,7 +366,7 @@ function renderHistory() {
     });
 
     let html = '';
-    for (const [folderName, entries]of Object.entries(grouped)) {
+    for (const [folderName, entries] of Object.entries(grouped)) {
         html += `
             <div class="folder-group">
                 <div class="folder-header" onclick="toggleFolder(this)">
@@ -348,18 +377,27 @@ function renderHistory() {
         `;
         entries.forEach(entry => {
             html += `
-                <div class="entry-card">
+                <div class="entry-card" id="entry-${entry.id}">
                     <div class="entry-meta">📌 <strong>${escapeHtml(entry.title)}</strong><br>⏱️ ${entry.timestamp}</div>
                     <div class="entry-hash">SHA-256: ${entry.hash}</div>
                     <div class="entry-text"><strong>Originaltext:</strong><br>${escapeHtml(entry.text)}</div>
                     <button class="btn-copy" onclick="copyToClipboard('${entry.hash}')">Hash kopieren</button>
                     <button class="btn-text-copy" onclick="copyToClipboard(decodeURIComponent('${encodeURIComponent(entry.text)}'))">Originaltext kopieren</button>
+                    <button class="btn-delete" onclick="deleteEntry(${entry.id})">Eintrag löschen</button>
                 </div>
             `;
         });
         html += `</div></div>`;
     }
     historyDiv.innerHTML = html;
+}
+
+function deleteEntry(id) {
+    if (confirm("Möchtest du diesen Eintrag wirklich unwiderruflich löschen?")) {
+        vaultEntries = vaultEntries.filter(e => e.id !== id);
+        localStorage.setItem('laflo_vault_entries', JSON.stringify(vaultEntries));
+        renderHistory();
+    }
 }
 
 function toggleFolder(headerElement) {
@@ -371,6 +409,53 @@ function toggleFolder(headerElement) {
     } else {
         content.style.display = "block";
         arrow.textContent = "▲";
+    }
+}
+
+// Backup Exportieren (JSON Datei zum Teilen per WhatsApp, Google Drive etc.)
+function exportBackup() {
+    const backupData = {
+        pin: localStorage.getItem('laflo_vault_pin'),
+        folders: folders,
+        entries: vaultEntries
+    };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", "laflo_vault_backup_" + new Date().toISOString().slice(0,10) + ".json");
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+}
+
+// Backup Importieren (Wiederherstellung auf neuem Handy)
+function importBackup(event) {
+    const fileReader = new FileReader();
+    if (event.target.files[0]) {
+        fileReader.readAsText(event.target.files[0], "UTF-8");
+        fileReader.onload = function(e) {
+            try {
+                const imported = JSON.parse(e.target.result);
+                if (imported.entries && imported.folders) {
+                    if (confirm("Möchtest du das Backup wirklich einspielen? Vorhandene lokale Einträge werden ergänzt oder überschrieben.")) {
+                        folders = imported.folders;
+                        vaultEntries = imported.entries;
+                        if (imported.pin) {
+                            localStorage.setItem('laflo_vault_pin', imported.pin);
+                        }
+                        localStorage.setItem('laflo_vault_folders', JSON.stringify(folders));
+                        localStorage.setItem('laflo_vault_entries', JSON.stringify(vaultEntries));
+                        updateFolderDropdown();
+                        renderHistory();
+                        alert("Backup erfolgreich wiederhergestellt!");
+                    }
+                } else {
+                    alert("Ungültige Backup-Datei!");
+                }
+            } catch (err) {
+                alert("Fehler beim Lesen der Datei: " + err);
+            }
+        }
     }
 }
 

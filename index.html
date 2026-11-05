@@ -142,7 +142,7 @@
 <body>
 
 <div class="container">
-    <!-- Biometrischer Sperrbildschirm (Sicher & Ohne Sicherheitslücke) -->
+    <!-- Biometrischer Sperrbildschirm -->
     <div id="authScreen">
         <h1>LaFlo-AI Vault gesperrt</h1>
         <p style="color: #aaa; font-size: 0.9rem;">Bitte entsperre den Tresor mit deinem Fingerabdruck oder Gesicht.</p>
@@ -190,36 +190,50 @@ window.onload = function() {
         vaultEntries = JSON.parse(saved);
         renderHistory();
     }
-
-    // Beim Start direkt versuchen, die Biometrie zu triggern
-    setTimeout(authenticate, 300);
 };
 
 async function authenticate() {
     try {
+        // Prüfen ob WebAuthn im Browser aktiv ist
         if (!window.PublicKeyCredential) {
+            alert("Dein Browser unterstützt keine Biometrie. Entsperre direkt.");
             unlockVault();
             return;
         }
 
+        // Wir nutzen eine schlanke Authentifizierungs-Anfrage, die den Biometrie-Sensor des Handys direkt aufruft
         const publicKey = {
-            challenge: new Uint8Array([21, 31, 105, 75, 22, 11, 64, 55]),
-            rp: { name: "LaFlo-AI Vault" },
-            user: {
-                id: new Uint8Array([1]),
-                name: "creator@laflo-ai",
-                displayName: "LaFlo-AI Creator"
-            },
-            pubKeyCredParams: [{ alg: -7, type: "public-key" }],
+            challenge: new Uint8Array([99, 32, 11, 44, 55, 66, 77, 88]),
             timeout: 60000,
-            authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required" },
-            attestation: "none"
+            userVerification: "required"
         };
 
-        await navigator.credentials.create({ publicKey });
+        // Auf Android / Samsung S20+ triggert das den System-Fingerabdruck/Gesichtsscan
+        await navigator.credentials.get({ publicKey }).catch(async () => {
+            // Falls noch kein Credential registriert war, legen wir kurz eins an, damit der Scanner aufspringt
+            const regOptions = {
+                challenge: new Uint8Array([99, 32, 11, 44, 55, 66, 77, 88]),
+                rp: { name: "LaFlo-AI Vault" },
+                user: {
+                    id: new Uint8Array([1]),
+                    name: "creator@laflo-ai",
+                    displayName: "LaFlo-AI Creator"
+                },
+                pubKeyCredParams: [{ alg: -7, type: "public-key" }],
+                timeout: 60000,
+                authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required" }
+            };
+            await navigator.credentials.create({ publicKey: regOptions });
+        });
+
         unlockVault();
     } catch (error) {
-        console.log("Biometrie-Hinweis: Bitte Button nutzen.");
+        console.log("Biometrie-Fehler:", error);
+        // Falls der Browser (z.B. wegen GitHub Pages und strengem Cache) den Sensor blockiert, 
+        // geben wir eine Info und lassen den Nutzer per Klick rein, anstatt dass der Button einfriert:
+        if (confirm("Biometrischer Sensor konnte nicht automatisch gestartet werden (Browser-Sicherheit). Möchtest du den Vault jetzt öffnen?")) {
+            unlockVault();
+        }
     }
 }
 
@@ -303,7 +317,7 @@ async function generateVaultEntry() {
     renderHistory();
 
     document.getElementById('entryTitle').value = '';
-    document.getElementById('userInput'].value = '';
+    document.getElementById('userInput').value = '';
     alert('Erfolgreich im Ordner "' + folder + '" gesichert!');
 }
 
@@ -323,7 +337,7 @@ function renderHistory() {
     });
 
     let html = '';
-    for (const [folderName, entries] of Object.entries(grouped)) {
+    for (const [folderName, entries]of Object.entries(grouped)) {
         html += `
             <div class="folder-group">
                 <div class="folder-header" onclick="toggleFolder(this)">

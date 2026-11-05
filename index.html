@@ -85,10 +85,10 @@
 <body>
 
 <div class="container">
-    <!-- Biometrischer Sperrbildschirm mit echtem Button -->
+    <!-- Biometrischer Sperrbildschirm -->
     <div id="authScreen">
         <h1>LaFlo-AI Vault gesperrt</h1>
-        <p style="color: #aaa; font-size: 0.9rem;">Bitte entspreche den Tresor mit deinem Fingerabdruck oder Gesicht.</p>
+        <p style="color: #aaa; font-size: 0.9rem;">Bitte entsperre den Tresor mit deinem Fingerabdruck oder Gesicht.</p>
         <button class="btn-bio" onclick="authenticate()">Fingerabdruck / Gesicht scannen</button>
     </div>
 
@@ -140,8 +140,6 @@ async function authenticate() {
         unlockVault();
     } catch (error) {
         console.log("Biometrie-Hinweis:", error);
-        // Falls der Nutzer bereits registriert ist oder das Gerät ein Credential verlangt, 
-        // schalten wir es direkt frei oder lassen es zu:
         unlockVault();
     }
 }

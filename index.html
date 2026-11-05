@@ -57,9 +57,18 @@
         .btn-copy {
             background-color: #00FFFF;
             margin-top: 5px;
+            color: #000;
         }
         .btn-copy:hover {
             background-color: #00cccc;
+        }
+        .btn-text-copy {
+            background-color: #FF00FF;
+            margin-top: 5px;
+            color: #fff;
+        }
+        .btn-text-copy:hover {
+            background-color: #d400d4;
         }
         .btn-bio {
             background-color: #BD00FF;
@@ -120,14 +129,11 @@
         <p style="font-size: 0.9rem; color: #aaa;">Sichere deine Ideen, Texte und Songs mit lokalem Hash & Ordner-Struktur.</p>
         
         <!-- Ordnerverwaltung -->
-        <label style="font-size: 0.85rem; color: #aaa;">Ordner / Kategorie auswählen oder erstellen:</label>
+        <label style="font-size: 0.85rem; color: #aaa;">Ordner / Kategorie auswählen oder verwalten:</label>
         <div style="display: flex; gap: 5px; margin-bottom: 10px;">
-            <select id="folderSelect" style="margin-bottom: 0;">
-                <option value="Songtexte">Songtexte</option>
-                <option value="Gedichte">Gedichte</option>
-                <option value="Ideen">Ideen</option>
-            </select>
-            <button onclick="addNewFolder()" style="width: auto; padding: 0 15px; background: #BD00FF; color: #fff;">+ Ordner</button>
+            <select id="folderSelect" style="margin-bottom: 0; flex: 2;"></select>
+            <button onclick="addNewFolder()" style="width: auto; padding: 0 10px; background: #BD00FF; color: #fff; font-size: 0.85rem;">+ Ordner</button>
+            <button onclick="deleteCurrentFolder()" style="width: auto; padding: 0 10px; background: #FF4444; color: #fff; font-size: 0.85rem;">Löschen</button>
         </div>
 
         <input type="text" id="entryTitle" placeholder="Titel des Werks (z. B. Song X - V1)">
@@ -144,9 +150,17 @@
 
 <script>
 let vaultEntries = [];
+let folders = ["Songtexte", "Gedichte", "Ideen", "LaFlo-AI Vault"];
 
-// Einträge beim Laden aus dem lokalen Speicher des Handys laden
 window.onload = function() {
+    // Ordner laden
+    const savedFolders = localStorage.getItem('laflo_vault_folders');
+    if (savedFolders) {
+        folders = JSON.parse(savedFolders);
+    }
+    updateFolderDropdown();
+
+    // Einträge laden
     const saved = localStorage.getItem('laflo_vault_entries');
     if (saved) {
         vaultEntries = JSON.parse(saved);
@@ -187,15 +201,47 @@ function unlockVault() {
     document.getElementById('vaultApp').style.display = 'block';
 }
 
+function updateFolderDropdown(selectedVal = "") {
+    const select = document.getElementById('folderSelect');
+    select.innerHTML = '';
+    folders.forEach(folder => {
+        const option = document.createElement('option');
+        option.value = folder;
+        option.textContent = folder;
+        select.appendChild(option);
+    });
+    if (selectedVal && folders.includes(selectedVal)) {
+        select.value = selectedVal;
+    }
+}
+
 function addNewFolder() {
     const folderName = prompt("Gib den Namen für den neuen Ordner ein:");
     if (folderName && folderName.trim()) {
-        const select = document.getElementById('folderSelect');
-        const option = document.createElement('option');
-        option.value = folderName.trim();
-        option.textContent = folderName.trim();
-        select.appendChild(option);
-        select.value = folderName.trim();
+        const cleanName = folderName.trim();
+        if (!folders.includes(cleanName)) {
+            folders.push(cleanName);
+            localStorage.setItem('laflo_vault_folders', JSON.stringify(folders));
+            updateFolderDropdown(cleanName);
+        } else {
+            alert("Dieser Ordner existiert bereits!");
+        }
+    }
+}
+
+function deleteCurrentFolder() {
+    const select = document.getElementById('folderSelect');
+    const currentFolder = select.value;
+
+    if (folders.length <= 1) {
+        alert("Du kannst den letzten verbleibenden Ordner nicht löschen!");
+        return;
+    }
+
+    if (confirm(`Möchtest du den Ordner "${currentFolder}" wirklich löschen?`)) {
+        folders = folders.filter(f => f !== currentFolder);
+        localStorage.setItem('laflo_vault_folders', JSON.stringify(folders));
+        updateFolderDropdown();
     }
 }
 
@@ -229,7 +275,6 @@ async function generateVaultEntry() {
     
     renderHistory();
 
-    // Eingabefelder leeren
     document.getElementById('entryTitle').value = '';
     document.getElementById('userInput').value = '';
     alert('Erfolgreich im Ordner "' + folder + '" gesichert!');
@@ -243,22 +288,25 @@ function renderHistory() {
     }
 
     let html = '';
-    vaultEntries.forEach((entry, index) => {
+    vaultEntries.forEach((entry) => {
         html += `
             <div class="entry-card">
-                <div class="entry-meta">📁 <strong>${entry.folder}</strong> | 📌 <strong>${entry.title}</strong><br>⏱️ ${entry.timestamp}</div>
+                <div class="entry-meta">📁 <strong>${escapeHtml(entry.folder)}</strong> | 📌 <strong>${escapeHtml(entry.title)}</strong><br>⏱️ ${entry.timestamp}</div>
                 <div class="entry-hash">SHA-256: ${entry.hash}</div>
                 <div class="entry-text"><strong>Originaltext:</strong><br>${escapeHtml(entry.text)}</div>
-                <button class="btn-copy" onclick="copySpecificHash('${entry.hash}')">Hash kopieren</button>
+                <button class="btn-copy" onclick="copyToClipboard('${entry.hash}')">Hash kopieren</button>
+                <button class="btn-text-copy" onclick="copyToClipboard(${JSON.stringify(entry.text)})">Originaltext kopieren</button>
             </div>
         `;
     });
     historyDiv.innerHTML = html;
 }
 
-function copySpecificHash(hash) {
-    navigator.clipboard.writeText(hash).then(() => {
-        alert('Hash erfolgreich kopiert!');
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        alert('Erfolgreich in die Zwischenablage kopiert!');
+    }).catch(err => {
+        alert('Fehler beim Kopieren: ' + err);
     });
 }
 

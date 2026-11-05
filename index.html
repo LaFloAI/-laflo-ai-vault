@@ -46,9 +46,16 @@
             border-radius: 5px;
             cursor: pointer;
             font-size: 1rem;
+            margin-top: 5px;
         }
         button:hover {
             background-color: #00cc00;
+        }
+        .btn-copy {
+            background-color: #00FFFF;
+        }
+        .btn-copy:hover {
+            background-color: #00cccc;
         }
         .result {
             margin-top: 20px;
@@ -75,10 +82,14 @@
         <strong>Zeitstempel:</strong> <span id="timeOut"></span><br><br>
         <strong>SHA-256 Hash:</strong><br>
         <span id="hashOut" style="color: #00FFFF;"></span>
+        
+        <button class="btn-copy" onclick="copyHash()">Hash in Zwischenablage kopieren</button>
     </div>
 </div>
 
 <script>
+let lastGeneratedHash = "";
+
 async function generateVaultEntry() {
     const text = document.getElementById('userInput').value;
     if (!text.trim()) {
@@ -86,20 +97,27 @@ async function generateVaultEntry() {
         return;
     }
 
-    // Zeitstempel erzeugen
     const now = new Date().toISOString();
-
-    // SHA-256 Hash direkt im Browser erzeugen
     const encoder = new TextEncoder();
     const data = encoder.encode(text + now);
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-    // Ausgabe anzeigen
+    lastGeneratedHash = hashHex;
+
     document.getElementById('timeOut').innerText = now;
     document.getElementById('hashOut').innerText = hashHex;
     document.getElementById('output').style.display = 'block';
+}
+
+function copyHash() {
+    if (!lastGeneratedHash) return;
+    navigator.clipboard.writeText(lastGeneratedHash).then(() => {
+        alert('Hash erfolgreich kopiert!');
+    }).catch(err => {
+        alert('Fehler beim Kopieren: ' + err);
+    });
 }
 </script>
 
